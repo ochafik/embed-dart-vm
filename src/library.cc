@@ -12,11 +12,11 @@ Library::Library(const char* name, const char* source,
 }
 
 Dart_Handle Library::Load() {
-  Dart_Handle url = Dart_NewString(name_);
+  Dart_Handle url = Dart_NewStringFromCString(name_);
   Dart_Handle library = Dart_LookupLibrary(url);
 
   if (Dart_IsError(library))
-    library = Dart_LoadLibrary(url, Dart_NewString(source_));
+    library = Dart_LoadLibrary(url, Dart_NewStringFromCString(source_), 0, 0);
 
   if (Dart_IsError(library)) {
     std::cerr << "Failed to load library: " << name_ << "|" << source_
@@ -25,7 +25,7 @@ Dart_Handle Library::Load() {
   }
 
   if (native_resolver_ != NULL)
-    Dart_SetNativeResolver(library, native_resolver_);
+    Dart_SetNativeResolver(library, native_resolver_, NULL);
   if (initializer_ != NULL)
     initializer_(library);
 

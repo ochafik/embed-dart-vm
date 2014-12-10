@@ -21,7 +21,8 @@ NativeFunctionMap core_native_function_map;
 NativeFunctionMap io_native_function_map;
 
 template<const NativeFunctionMap& function_map>
-Dart_NativeFunction LibraryResolver(Dart_Handle name, int arg_count) {
+Dart_NativeFunction LibraryResolver(
+    Dart_Handle name, int num_of_arguments, bool* auto_setup_scope) {
   const char* native_function_name = 0;
   Dart_StringToCString(name, &native_function_name);
   NativeFunctionMap::const_iterator func_it =
@@ -47,14 +48,14 @@ Library* CreateCoreLibrary() {
 
 void IOLibraryInitializer(Dart_Handle library) {
   Dart_Handle timer_closure =
-    Dart_Invoke(library, Dart_NewString("_getTimerFactoryClosure"), 0, 0);
+    Dart_Invoke(library, Dart_NewStringFromCString("_getTimerFactoryClosure"), 0, 0);
   Dart_Handle isolate_library =
-    Dart_LookupLibrary(Dart_NewString("dart:isolate"));
+    Dart_LookupLibrary(Dart_NewStringFromCString("dart:isolate"));
 
   Dart_Handle args[1];
   args[0] = timer_closure;
   Dart_Handle result = Dart_Invoke(isolate_library,
-                                   Dart_NewString("_setTimerFactoryClosure"),
+                                   Dart_NewStringFromCString("_setTimerFactoryClosure"),
                                    1,
                                    args);
   assert(!Dart_IsError(result));
@@ -99,9 +100,10 @@ void Isolate::ShutdownBuiltinLibraries() {
 
 void Isolate::Invoke(const char* function) {
   std::cout << __FUNCTION__ << ": " << function << std::endl;
+  Dart_EnterIsolate(isolate_);
   Dart_EnterScope();
   Dart_Handle result = Dart_Invoke(library_,
-                                   Dart_NewString(function),
+                                   Dart_NewStringFromCString(function),
                                    0,
                                    NULL);
   if (Dart_IsError(result)) {
@@ -110,6 +112,7 @@ void Isolate::Invoke(const char* function) {
   }
   Dart_RunLoop();
   Dart_ExitScope();
+  Dart_ExitIsolate();
 }
 
 }
