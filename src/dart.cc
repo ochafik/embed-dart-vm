@@ -105,35 +105,20 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   std::cout << "Created isolate" << std::endl;
   AutoEnterScope autoScope;
 
-  Dart_Handle result = Dart_SetLibraryTagHandler(LibraryTagHandler);
+  auto isError = [&error] (Dart_Handle handle) {
+    if (Dart_IsError(handle)) {
+      *error = strdup(Dart_GetError(handle));
+      Dart_ShutdownIsolate();
+      return true;
+    }
+    return false;
+  };
 
-  if (Dart_IsError(result)) {
-    *error = strdup(Dart_GetError(result));
-    Dart_ShutdownIsolate();
-    return NULL;
-  }
-
-  // Set up uri library.
-  Dart_Handle uri_library = Isolate::uri_library->Load();
-  if (Dart_IsError(uri_library)) {
-    *error = strdup(Dart_GetError(result));
-    Dart_ShutdownIsolate();
-    return NULL;
-  }
-
-  // Set up core library.
-  Dart_Handle core_library = Isolate::core_library->Load();
-  if (Dart_IsError(core_library)) {
-    *error = strdup(Dart_GetError(result));
-    Dart_ShutdownIsolate();
-    return NULL;
-  }
-
-  // Set up io library.
-  Dart_Handle io_library = Isolate::io_library->Load();
-  if (Dart_IsError(io_library)) {
-    *error = strdup(Dart_GetError(result));
-    Dart_ShutdownIsolate();
+  Dart_Handle core_library;
+  if (isError(Dart_SetLibraryTagHandler(LibraryTagHandler)) ||
+      isError(Isolate::uri_library->Load()) ||
+      isError(core_library = Isolate::core_library->Load()) ||
+      isError(Isolate::io_library->Load())) {
     return NULL;
   }
   std::cout << "Loaded builtin libraries" << std::endl;
@@ -141,17 +126,8 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   std::cout << "About to load " << script << std::endl;
   Dart_Handle library = LoadScript(script, true, core_library);
 
-  if (Dart_IsError(library)) {
-    *error = strdup(Dart_GetError(library));
-    Dart_ShutdownIsolate();
-    return NULL;
-  }
-
-  result = Dart_LibraryImportLibrary(library, core_library, Dart_Null());
-
-  if (Dart_IsError(library)) {
-    *error = strdup(Dart_GetError(library));
-    Dart_ShutdownIsolate();
+  if (isError(library) ||
+      isError(Dart_LibraryImportLibrary(library, core_library, Dart_Null())) {
     return NULL;
   }
 
