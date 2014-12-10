@@ -4,6 +4,7 @@
 
 #include "isolate.h"
 #include "library.h"
+#include "string_utils.h"
 
 extern const uint8_t* snapshot_buffer;
 
@@ -22,12 +23,12 @@ Dart_Handle LibraryTagHandler(Dart_LibraryTag tag,
 Dart_Handle ResolveScript(const char* script, Dart_Handle core_library) {
   char* cwd = getcwd(NULL, 0);
   Dart_Handle args[3] = {
-    Dart_NewString(cwd),
-    Dart_NewString(script),
+    Dart_NewStringFromCString(cwd),
+    Dart_NewStringFromCString(script),
     Dart_True()  // TODO: should this be true or false?
   };
   Dart_Handle ret = Dart_Invoke(
-      core_library, Dart_NewString("_resolveScriptUri"), 3, args);
+      core_library, Dart_NewStringFromCString("_resolveScriptUri"), 3, args);
   free(cwd);
   return ret;
 }
@@ -37,7 +38,7 @@ Dart_Handle FilePathFromUri(Dart_Handle script, Dart_Handle core_library) {
     script,
     Dart_True()  // TODO: should this be true or false?
   };
-  return Dart_Invoke(core_library, Dart_NewString("_filePathFromUri"), 2, args);
+  return Dart_Invoke(core_library, Dart_NewStringFromCString("_filePathFromUri"), 2, args);
 }
 
 Dart_Handle ReadSource(Dart_Handle script, Dart_Handle core_library) {
@@ -50,7 +51,10 @@ Dart_Handle ReadSource(Dart_Handle script, Dart_Handle core_library) {
 
   FILE* file = fopen(script_path_str, "r");
   if (file == NULL)
-    return Dart_Error("Unable to read file '%s'", script_path_str);
+    return Dart_NewApiError(
+      // (std::ostringstream() << "Unable to read file '" << script_path_str << "'").str().c_str());
+      STRING_STREAM("Unable to read file '" << script_path_str << "'").c_str());
+    // return Dart_Error("Unable to read file '%s'", script_path_str);
 
   fseek(file, 0, SEEK_END);
   long length = ftell(file);
@@ -61,7 +65,7 @@ Dart_Handle ReadSource(Dart_Handle script, Dart_Handle core_library) {
   fclose(file);
   buffer[read] = '\0';
 
-  Dart_Handle source = Dart_NewString(buffer);
+  Dart_Handle source = Dart_NewStringFromCString(buffer);
 
   delete[] buffer;
 
@@ -79,14 +83,14 @@ Dart_Handle LoadScript(const char* script,
     if (Dart_IsError(resolved_script))
       return resolved_script;
   } else {
-    resolved_script = Dart_NewString(script);
+    resolved_script = Dart_NewStringFromCString(script);
   }
 
   Dart_Handle source = ReadSource(resolved_script, core_library);
   if (Dart_IsError(source))
     return source;
 
-  return Dart_LoadScript(resolved_script, source);
+  return Dart_LoadScript(resolved_script, source, 0, 0);
 }
 
 Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
@@ -174,8 +178,54 @@ bool IsolateCreateCallback(const char* script_uri,
 bool IsolateInterruptCallback() {
   return true;
 }
+Dart_Isolate IsolateCreateCallback(const char* script_uri,
+                                   const char* main,
+                                   const char* package_root,
+                                   void* callback_data,
+                                   char** error) {
+  // TODO(ochafik): Implement this?
+  return NULL;
+}
+
+Dart_Isolate ServiceIsolateCreateCalback(void* callback_data,
+                                         char** error) {
+  // TODO(ochafik): Implement this?
+  return NULL;
+}
+
+void IsolateUnhandledExceptionCallback(Dart_Handle error) {
+  // TODO(ochafik): Implement this?
+}
 
 void IsolateShutdownCallback(void* callback_data) {
+  // TODO(ochafik): Implement this?
+}
+
+
+void* FileOpenCallback(const char* name, bool write) {
+  // TODO(ochafik): Implement this?
+  return nullptr;
+}
+
+void FileReadCallback(const uint8_t** data,
+                      intptr_t* file_length,
+                      void* stream) {
+  // TODO(ochafik): Implement this?
+}
+
+void FileWriteCallback(const void* data,
+                       intptr_t length,
+                       void* stream) {
+  // TODO(ochafik): Implement this?
+}
+
+void FileCloseCallback(void* stream) {
+  // TODO(ochafik): Implement this?
+}
+
+bool EntropySource(uint8_t* buffer, intptr_t length) {
+  // TODO(ochafik): Implement this?
+  return false;
 }
 
 // public
@@ -183,7 +233,14 @@ void Initialize(int argc, const char* argv[]) {
   Dart_SetVMFlags(argc, argv);
   assert(Dart_Initialize(IsolateCreateCallback,
                          IsolateInterruptCallback,
-                         IsolateShutdownCallback));
+                         IsolateUnhandledExceptionCallback,
+                         IsolateShutdownCallback,
+                         FileOpenCallback,
+                         FileReadCallback,
+                         FileWriteCallback,
+                         FileCloseCallback,
+                         EntropySource,
+                         ServiceIsolateCreateCalback));
 
   Isolate::InitializeBuiltinLibraries();
 }
