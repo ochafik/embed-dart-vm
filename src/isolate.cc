@@ -1,5 +1,6 @@
 #include "isolate.h"
 #include "library.h"
+#include "utils.h"
 
 #include <iostream>
 #include <map>
@@ -100,8 +101,8 @@ void Isolate::ShutdownBuiltinLibraries() {
 
 void Isolate::Invoke(const char* function) {
   std::cout << __FUNCTION__ << ": " << function << std::endl;
-  Dart_EnterIsolate(isolate_);
-  Dart_EnterScope();
+  AutoEnterIsolate autoIsolate(isolate_);
+  AutoEnterScope autoScope;
   Dart_Handle result = Dart_Invoke(library_,
                                    Dart_NewStringFromCString(function),
                                    0,
@@ -111,8 +112,6 @@ void Isolate::Invoke(const char* function) {
               << Dart_GetError(result);
   }
   Dart_RunLoop();
-  Dart_ExitScope();
-  Dart_ExitIsolate();
 }
 
 }

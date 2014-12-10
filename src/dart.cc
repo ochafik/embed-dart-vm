@@ -5,7 +5,7 @@
 #include "isolate.h"
 #include "library.h"
 #include "file.h"
-#include "string_utils.h"
+#include "utils.h"
 
 extern const uint8_t* snapshot_buffer;
 
@@ -103,13 +103,12 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   assert(isolate);
 
   std::cout << "Created isolate" << std::endl;
-  Dart_EnterScope();
+  AutoEnterScope autoScope;
 
   Dart_Handle result = Dart_SetLibraryTagHandler(LibraryTagHandler);
 
   if (Dart_IsError(result)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -118,7 +117,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle uri_library = Isolate::uri_library->Load();
   if (Dart_IsError(uri_library)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -127,7 +125,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle core_library = Isolate::core_library->Load();
   if (Dart_IsError(core_library)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -136,7 +133,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle io_library = Isolate::io_library->Load();
   if (Dart_IsError(io_library)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -147,7 +143,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
 
   if (Dart_IsError(library)) {
     *error = strdup(Dart_GetError(library));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -156,7 +151,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
 
   if (Dart_IsError(library)) {
     *error = strdup(Dart_GetError(library));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
