@@ -214,7 +214,7 @@ void* FileOpenCallback(const char* name, bool write) {
 
 void FileReadCallback(const uint8_t** data, intptr_t* length, void* stream) {
   reinterpret_cast<File*>(stream)->read(data, length);
-}s
+}
 
 void FileWriteCallback(const void* data, intptr_t length, void* stream) {
   reinterpret_cast<File*>(stream)->write(data, length);
