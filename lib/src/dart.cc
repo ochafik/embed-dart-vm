@@ -4,7 +4,8 @@
 
 #include "isolate.h"
 #include "library.h"
-#include "string_utils.h"
+#include "file.h"
+#include "utils.h"
 
 extern const uint8_t* snapshot_buffer;
 
@@ -102,13 +103,12 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   assert(isolate);
 
   std::cout << "Created isolate" << std::endl;
-  Dart_EnterScope();
+  AutoEnterScope autoScope;
 
   Dart_Handle result = Dart_SetLibraryTagHandler(LibraryTagHandler);
 
   if (Dart_IsError(result)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -117,7 +117,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle uri_library = Isolate::uri_library->Load();
   if (Dart_IsError(uri_library)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -126,7 +125,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle core_library = Isolate::core_library->Load();
   if (Dart_IsError(core_library)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -135,7 +133,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle io_library = Isolate::io_library->Load();
   if (Dart_IsError(io_library)) {
     *error = strdup(Dart_GetError(result));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -146,7 +143,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
 
   if (Dart_IsError(library)) {
     *error = strdup(Dart_GetError(library));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -155,7 +151,6 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
 
   if (Dart_IsError(library)) {
     *error = strdup(Dart_GetError(library));
-    Dart_ExitScope();
     Dart_ShutdownIsolate();
     return NULL;
   }
@@ -201,26 +196,31 @@ void IsolateShutdownCallback(void* callback_data) {
   // TODO(ochafik): Implement this?
 }
 
+static std::string g_package_root;
+
+void SetPackageRoot(const char* package_root) {
+  g_package_root = package_root;
+}
 
 void* FileOpenCallback(const char* name, bool write) {
-  // TODO(ochafik): Implement this?
-  return nullptr;
+  std::string path = g_package_root + name;
+  File *file = write ? File::openOutput(path) : File::openInput(path);
+  if (file == nullptr) {
+    printf("\nERROR: File not found: %s\n", path.c_str());
+  }
+  return file;
 }
 
-void FileReadCallback(const uint8_t** data,
-                      intptr_t* file_length,
-                      void* stream) {
-  // TODO(ochafik): Implement this?
-}
+void FileReadCallback(const uint8_t** data, intptr_t* length, void* stream) {
+  reinterpret_cast<File*>(stream)->read(data, length);
+}s
 
-void FileWriteCallback(const void* data,
-                       intptr_t length,
-                       void* stream) {
-  // TODO(ochafik): Implement this?
+void FileWriteCallback(const void* data, intptr_t length, void* stream) {
+  reinterpret_cast<File*>(stream)->write(data, length);
 }
 
 void FileCloseCallback(void* stream) {
-  // TODO(ochafik): Implement this?
+  delete reinterpret_cast<File*>(stream);
 }
 
 bool EntropySource(uint8_t* buffer, intptr_t length) {
