@@ -4,6 +4,7 @@
 
 #include "isolate.h"
 #include "library.h"
+#include "file.h"
 #include "string_utils.h"
 
 extern const uint8_t* snapshot_buffer;
@@ -202,25 +203,31 @@ void IsolateShutdownCallback(void* callback_data) {
 }
 
 
+static std::string g_package_root;
+
+void SetPackageRoot(const char* package_root) {
+  g_package_root = package_root;
+}
+
 void* FileOpenCallback(const char* name, bool write) {
-  // TODO(ochafik): Implement this?
-  return nullptr;
+  std::string path = g_package_root + name;
+  File *file = write ? File::openOutput(path) : File::openInput(path);
+  if (file == nullptr) {
+    printf("\nERROR: File not found: %s\n", path.c_str());
+  }
+  return file;
 }
 
-void FileReadCallback(const uint8_t** data,
-                      intptr_t* file_length,
-                      void* stream) {
-  // TODO(ochafik): Implement this?
-}
+void FileReadCallback(const uint8_t** data, intptr_t* length, void* stream) {
+  reinterpret_cast<File*>(stream)->read(data, length);
+}s
 
-void FileWriteCallback(const void* data,
-                       intptr_t length,
-                       void* stream) {
-  // TODO(ochafik): Implement this?
+void FileWriteCallback(const void* data, intptr_t length, void* stream) {
+  reinterpret_cast<File*>(stream)->write(data, length);
 }
 
 void FileCloseCallback(void* stream) {
-  // TODO(ochafik): Implement this?
+  delete reinterpret_cast<File*>(stream);
 }
 
 bool EntropySource(uint8_t* buffer, intptr_t length) {
