@@ -1,0 +1,8 @@
+name: dart_jvm_test
+dependencies:
+  dart_jvm:
+    path: ..
+transformers:
+- dart_jvm
+- $dart2js:
+    $include: []
