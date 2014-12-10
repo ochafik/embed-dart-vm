@@ -23,18 +23,19 @@ linker:
 platforms:
   linux:
     compiler:
-      arguments: ['-fPIC', '-Wall']
+      arguments: ['-fPIC', '-Wall', '-std=c++11']
     linker:
       arguments: ['-shared', '-ldl', '-lstdc++']
       output_file: 'libdart_jvm_extension.so'
   macos:
     compiler:
-      arguments: ['-fPIC', '-Wall']
+      arguments: ['-fPIC', '-Wall', '-std=c++11']
     linker:
       arguments: ['-dynamiclib', '-undefined', 'dynamic_lookup']
       output_file: 'libdart_jvm_extension.dylib'
   windows:
     compiler:
+      arguments: ['-std=c++11']
       defines: {'DART_SHARED_LIB':}
       # input_files:
       # - 'dart_jvm_extension_dllmain_win.cc'

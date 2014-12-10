@@ -127,7 +127,7 @@ Isolate* CreateIsolate(const char* script, const char* main, bool resolve,
   Dart_Handle library = LoadScript(script, true, core_library);
 
   if (isError(library) ||
-      isError(Dart_LibraryImportLibrary(library, core_library, Dart_Null())) {
+      isError(Dart_LibraryImportLibrary(library, core_library, Dart_Null()))) {
     return NULL;
   }
 
